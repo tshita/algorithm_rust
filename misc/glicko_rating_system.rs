@@ -11,8 +11,8 @@
 //! - Glicko rating system を改良したものに Glicko-2 rating system がある
 //!
 //! # References
-//! - [Mark E. Glickman: The Glicko system.](http://www.glicko.net/glicko/glicko.pdf)
-//! - [Mark E. Glickman: Parameter estimation in large dynamic paired comparison experiments.](http://www.glicko.net/research/glicko.pdf)
+//! - \[1\] [Mark E. Glickman: The Glicko system.](http://www.glicko.net/glicko/glicko.pdf)
+//! - \[2\] [Mark E. Glickman: Parameter estimation in large dynamic paired comparison experiments.](http://www.glicko.net/research/glicko.pdf)
 
 use std::f64::consts::PI;
 
@@ -46,6 +46,7 @@ impl GameResult {
     }
 }
 
+#[allow(unused)]
 impl Player {
     /// Generate an unrated player.
     #[allow(unused)]
@@ -105,10 +106,15 @@ impl Player {
     }
 }
 
-fn main() {
-    {
-        // (1) Example of a rating update
+/// Compare with the Example calculation chapter in [1].
+/// Note that the significant figures in [1] are small.
+#[cfg(test)]
+mod tests {
+    use super::*;
 
+    /// (1) Example of a rating update
+    #[test]
+    fn test_update_rating() {
         // Player to be updated
         let mut main_player = Player {
             rating: 1500.0,
@@ -137,14 +143,19 @@ fn main() {
 
         main_player.update(&game_results);
 
+        assert!((main_player.rating - 1464.0).abs() < 1.0); // rating ~ 1464
+        assert!((main_player.rd - 151.4).abs() < 0.1); // rd ~ 151.4
+
+        // If you want to check the resulting numbers, do `$ cargo test -- --nocapture`.
         println!(
-            "rating: {:.4}, RD: {:.4}",
+            "rating: {:.0}, RD: {:.1}",
             main_player.rating, main_player.rd
         );
     }
 
-    {
-        // (2) Example of a expected outcome of a game between two players
+    /// (2) Example of a expected outcome of a game between two players
+    #[test]
+    fn test_expected_outocome_two_players() {
         let p1 = Player {
             rating: 1400.0,
             rd: 80.0,
@@ -154,23 +165,34 @@ fn main() {
             rd: 150.0,
         };
 
+        assert!((p1.expected_outcome(&p2) - 0.376).abs() < 0.001); // EO(p1, p2) ~ 0.376
+
+        // If you want to check the resulting numbers, do `$ cargo test -- --nocapture`.
         println!(
             "probability that p1 beats p2: {:.3}",
             p1.expected_outcome(&p2)
         );
     }
 
-    {
-        // (3) Example of getting a 95 % confidence interaval for a player
+    // (3) Example of getting a 95 % confidence interaval for a player
+    #[test]
+    fn test_confidence_interval() {
         let p = Player {
             rating: 1500.0,
             rd: 30.0,
         };
 
-        let interaval = p.get_95confidence_interval();
+        let interval = p.get_95confidence_interval();
+
+        assert!((interval.0 - 1441.0).abs() < 1.0); // interval.0 ~ 1441.2
+        assert!((interval.1 - 1559.0).abs() < 1.0); // interval.0 ~ 1441.2
+
+        // If you want to check the resulting numbers, do `$ cargo test -- --nocapture`.
         println!(
-            "95% confidence interaval: ({}, {})",
-            interaval.0, interaval.1
+            "95% confidence interaval: ({:.0}, {:.0})",
+            interval.0, interval.1
         );
     }
 }
+
+fn main() {}
